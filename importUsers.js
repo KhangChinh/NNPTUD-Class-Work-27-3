@@ -62,13 +62,24 @@ async function importUsers() {
         }
         console.log(`✅ Sử dụng Role ID: ${role._id} (${role.name})`);
 
-        console.log("Bắt đầu quá trình Import Dữ liệu 99 Users...");
+        console.log("Bắt đầu đọc dữ liệu từ file user.xlsx...");
+        const xlsx = require('xlsx');
+        const workbook = xlsx.readFile('user.xlsx');
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        let usersData = xlsx.utils.sheet_to_json(worksheet);
 
-        for (let i = 1; i <= 99; i++) {
-            // Format format kiểu user01, user02 ... user99
-            const userIndexStr = i < 10 ? `0${i}` : `${i}`;
-            const username = `user${userIndexStr}`;
-            const email = `${username}@haha.com`;
+        console.log(`Tìm thấy ${usersData.length} users trong file Excel. Bắt đầu Import...`);
+
+        for (let row of usersData) {
+            const username = row.username;
+            const email = row.email;
+
+            if (!username || !email) {
+                console.log(`[Bỏ qua] Dòng thiếu dữ liệu username hoặc email.`);
+                continue;
+            }
+
             const rawPassword = generateRandomPassword();
 
             // Kiểm tra xem user này đã tồn tại chưa để tránh lỗi MongoDB unique index
@@ -95,8 +106,8 @@ async function importUsers() {
             // Chạy gửi mail
             await sendPasswordEmail(email, username, rawPassword);
 
-            // Delay khoảng 1 giây để không bị khóa (Rate Limit) ở Mailtrap miễn phí (chỉ cho phép tối đa 2 email / giây)
-            await delay(1000); 
+            // Delay khoảng 2 giây để không bị khóa (Rate Limit) ở Mailtrap miễn phí (chỉ cho phép tối đa 2 email / giây)
+            await delay(2000); 
         }
 
         console.log("🎉 XONG! Quá trình import hoàn thành.");
